@@ -24,13 +24,8 @@
                              data-bg-color="<%= isCurrentMonth ? getDateColor(day.toDate()) : '#f5f5f5' %>"
                              onclick="openEventModal('<%= dateKey %>')">
                             <span class="day-number"><%= day.date() %></span>
-                            <% if (isCurrentMonth && isWorkday(day.toDate())) { %>
-                                <span class="avatar work">💪</span>
-                            <% } else if (isCurrentMonth && !isWorkday(day.toDate())) { %>
-                                <span class="avatar rest">😎</span>
-                            <% } %>
                             <% if (eventCount > 0) { %>
-                                <span class="event-count"><%= eventCount %></span>
+                                <span class="event-indicator">•</span>
                             <% } %>
                         </div>
                     <% } %>

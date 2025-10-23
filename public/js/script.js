@@ -2,9 +2,206 @@ let currentView = 'month';
 let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth() + 1;
 let selectedDate = '';
+let translations = {};
+let currentLanguage = 'zh';
+let currentCountry = 'CN';
+let holidays = [];
+
+// 多语言支持
+async function loadTranslations() {
+    try {
+        const response = await fetch('/locales/translations.json');
+        translations = await response.json();
+    } catch (error) {
+        console.error('加载翻译文件失败:', error);
+        translations = { zh: {}, en: {} };
+    }
+}
+
+function t(key) {
+    const keys = key.split('.');
+    let value = translations[currentLanguage];
+    
+    for (const k of keys) {
+        if (value && value[k]) {
+            value = value[k];
+        } else {
+            return key; // 如果找不到翻译，返回原始key
+        }
+    }
+    
+    return value || key;
+}
+
+// 更新界面语言
+function updateLanguage() {
+    // 更新标题
+    document.title = t('title');
+    
+    // 更新导航按钮
+    const todayBtn = document.querySelector('.nav-button[onclick*="today"]');
+    if (todayBtn) todayBtn.textContent = t('navigation.today');
+    
+    // 更新视图按钮
+    const yearBtn = document.querySelector('.view-button[onclick*="year"]');
+    const monthBtn = document.querySelector('.view-button[onclick*="month"]');
+    const dayBtn = document.querySelector('.view-button[onclick*="day"]');
+    
+    if (yearBtn) yearBtn.textContent = t('navigation.year');
+    if (monthBtn) monthBtn.textContent = t('navigation.month');
+    if (dayBtn) dayBtn.textContent = t('navigation.day');
+    
+    // 更新其他界面元素
+    updateModalLanguage();
+    updateSettingsLanguage();
+}
+
+function updateModalLanguage() {
+    const modal = document.getElementById('eventModal');
+    if (modal) {
+        const title = modal.querySelector('h2');
+        if (title) {
+            title.textContent = isEditMode ? t('events.edit') : t('events.add');
+        }
+        
+        const textarea = modal.querySelector('textarea');
+        if (textarea) {
+            textarea.placeholder = t('events.placeholder');
+        }
+    }
+}
+
+function updateSettingsLanguage() {
+    // 这里可以添加设置界面的语言更新逻辑
+}
+
+// 国家和语言管理
+async function loadUserSettings() {
+    try {
+        const response = await fetch('/settings');
+        const settings = await response.json();
+        currentCountry = settings.country || 'CN';
+        currentLanguage = settings.language || 'zh';
+    } catch (error) {
+        console.error('加载用户设置失败:', error);
+    }
+}
+
+async function saveUserSettings(country, language) {
+    try {
+        const response = await fetch('/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ country, language })
+        });
+        
+        if (response.ok) {
+            currentCountry = country;
+            currentLanguage = language;
+            updateLanguage();
+            await loadHolidays();
+            location.reload(); // 重新加载页面以应用新设置
+        }
+    } catch (error) {
+        console.error('保存用户设置失败:', error);
+    }
+}
+
+// 节假日管理
+async function loadHolidays(forceRefresh = false) {
+    try {
+        const url = `/holidays/${currentCountry}/${currentYear}${forceRefresh ? '?refresh=true' : ''}`;
+        const response = await fetch(url);
+        holidays = await response.json();
+        updateHolidayDisplay();
+        
+        if (forceRefresh) {
+            showMessage('节假日数据已刷新', 'success');
+        }
+    } catch (error) {
+        console.error('加载节假日失败:', error);
+        holidays = [];
+        if (forceRefresh) {
+            showMessage('刷新节假日数据失败', 'error');
+        }
+    }
+}
+
+// 手动刷新节假日
+async function refreshHolidays() {
+    try {
+        showMessage('正在刷新节假日数据...', 'info');
+        
+        const response = await fetch('/holidays/refresh', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                country: currentCountry,
+                year: currentYear
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            await loadHolidays();
+            showMessage(result.message, 'success');
+        } else {
+            showMessage(result.error, 'error');
+        }
+    } catch (error) {
+        console.error('刷新节假日失败:', error);
+        showMessage('刷新节假日数据失败', 'error');
+    }
+}
+
+// 显示消息提示
+function showMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message-toast ${type}`;
+    messageDiv.textContent = message;
+    
+    document.body.appendChild(messageDiv);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 3000);
+}
+
+function updateHolidayDisplay() {
+    // 在日历中标记节假日
+    holidays.forEach(holiday => {
+        const dateElement = document.querySelector(`[data-date="${holiday.date}"]`);
+        if (dateElement) {
+            dateElement.classList.add('holiday');
+            
+            // 添加节假日标记
+            const holidayMark = document.createElement('div');
+            holidayMark.className = 'holiday-mark';
+            holidayMark.textContent = '🎉';
+            holidayMark.title = holiday.name;
+            dateElement.appendChild(holidayMark);
+        }
+    });
+}
 
 // 初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // 加载翻译和用户设置
+    await loadTranslations();
+    await loadUserSettings();
+    
+    // 更新界面语言
+    updateLanguage();
+    
+    // 加载节假日
+    await loadHolidays();
+    
     // 设置今天的日期跳转输入框
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dateJump').value = today;
@@ -999,6 +1196,104 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// 创建设置按钮
+function createSettingsButton() {
+    const header = document.querySelector('.header');
+    if (header && !document.getElementById('settingsBtn')) {
+        const settingsBtn = document.createElement('button');
+        settingsBtn.id = 'settingsBtn';
+        settingsBtn.className = 'settings-button';
+        settingsBtn.innerHTML = '⚙️';
+        settingsBtn.title = t('settings.title');
+        settingsBtn.onclick = showSettingsModal;
+        header.appendChild(settingsBtn);
+    }
+}
+
+// 显示设置模态框
+function showSettingsModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'settingsModal';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="closeSettingsModal()">&times;</span>
+            <h2>${t('settings.title')}</h2>
+            
+            <div class="settings-section">
+                <label for="countrySelect">${t('settings.country')}:</label>
+                <select id="countrySelect" onchange="onCountryChange()">
+                    ${Object.entries(window.supportedCountries || {}).map(([code, info]) => 
+                        `<option value="${code}" ${code === currentCountry ? 'selected' : ''}>
+                            ${info.flag} ${info.name}
+                        </option>`
+                    ).join('')}
+                </select>
+            </div>
+            
+            <div class="settings-section">
+                <label for="languageSelect">${t('settings.language')}:</label>
+                <select id="languageSelect">
+                    <option value="zh" ${currentLanguage === 'zh' ? 'selected' : ''}>🇨🇳 中文</option>
+                    <option value="en" ${currentLanguage === 'en' ? 'selected' : ''}>🇺🇸 English</option>
+                </select>
+            </div>
+            
+            <div class="settings-section">
+                <label>${t('settings.holidays')}:</label>
+                <button onclick="refreshHolidays()" class="refresh-btn">🔄 刷新节假日数据</button>
+            </div>
+            
+            <div class="settings-actions">
+                <button onclick="saveSettings()" class="save-btn">${t('settings.save')}</button>
+                <button onclick="closeSettingsModal()" class="cancel-btn">${t('settings.cancel')}</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// 国家变化时的处理
+function onCountryChange() {
+    const countrySelect = document.getElementById('countrySelect');
+    const languageSelect = document.getElementById('languageSelect');
+    const selectedCountry = countrySelect.value;
+    
+    // 根据国家建议语言
+    const countryInfo = window.supportedCountries[selectedCountry];
+    if (countryInfo && countryInfo.language) {
+        const suggestedLanguage = countryInfo.language === 'zh' ? 'zh' : 'en';
+        
+        // 询问是否切换语言
+        if (confirm(`${t('settings.country')} ${countryInfo.name}\n${t('settings.language')} ${suggestedLanguage === 'zh' ? '中文' : 'English'}?`)) {
+            languageSelect.value = suggestedLanguage;
+        }
+    }
+}
+
+// 保存设置
+async function saveSettings() {
+    const countrySelect = document.getElementById('countrySelect');
+    const languageSelect = document.getElementById('languageSelect');
+    
+    const newCountry = countrySelect.value;
+    const newLanguage = languageSelect.value;
+    
+    await saveUserSettings(newCountry, newLanguage);
+    closeSettingsModal();
+}
+
+// 关闭设置模态框
+function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
 
 // 获取当前视图参数
 const urlParams = new URLSearchParams(window.location.search);

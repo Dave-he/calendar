@@ -11,6 +11,7 @@
     "start:custom": "echo 'Usage: PORT=YOUR_PORT npm run start:custom' && node server.js"
   },
   "dependencies": {
+    "axios": "^1.12.2",
     "body-parser": "^1.20.2",
     "ejs": "^3.1.9",
     "express": "^4.18.2",

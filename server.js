@@ -4,6 +4,7 @@ const moment = require('moment');
 const path = require('path');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -67,6 +68,27 @@ db.serialize(() => {
         setting_key TEXT UNIQUE NOT NULL,
         setting_value TEXT NOT NULL,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // 节假日表
+    db.run(`CREATE TABLE IF NOT EXISTS holidays (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        country TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        name TEXT NOT NULL,
+        public INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(country, date)
+    )`);
+    
+    // 节假日缓存状态表
+    db.run(`CREATE TABLE IF NOT EXISTS holiday_cache_status (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        country TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(country, year)
     )`);
 });
 
@@ -245,6 +267,105 @@ const dbOperations = {
             });
             stmt.finalize();
         });
+    },
+    
+    // 获取节假日
+    getHolidays: (country, year) => {
+        return new Promise((resolve, reject) => {
+            db.all("SELECT * FROM holidays WHERE country = ? AND year = ? ORDER BY date", [country, year], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
+    },
+    
+    // 保存节假日
+    saveHolidays: (holidays) => {
+        return new Promise((resolve, reject) => {
+            const stmt = db.prepare("INSERT OR REPLACE INTO holidays (country, year, date, name, public) VALUES (?, ?, ?, ?, ?)");
+            
+            db.serialize(() => {
+                db.run("BEGIN TRANSACTION");
+                
+                holidays.forEach(holiday => {
+                    stmt.run(holiday.country, holiday.year, holiday.date, holiday.name, holiday.public ? 1 : 0);
+                });
+                
+                db.run("COMMIT", (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(holidays.length);
+                    }
+                });
+            });
+            
+            stmt.finalize();
+        });
+    },
+    
+    // 检查节假日缓存是否需要更新
+    needsHolidayUpdate: (country, year) => {
+        return new Promise((resolve, reject) => {
+            db.get("SELECT last_updated FROM holiday_cache_status WHERE country = ? AND year = ?", [country, year], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else if (!row) {
+                    resolve(true); // 没有缓存记录，需要更新
+                } else {
+                    const lastUpdated = new Date(row.last_updated);
+                    const now = new Date();
+                    const diffHours = (now - lastUpdated) / (1000 * 60 * 60);
+                    resolve(diffHours >= 24); // 超过24小时需要更新
+                }
+            });
+        });
+    },
+    
+    // 更新节假日缓存状态
+    updateHolidayCacheStatus: (country, year) => {
+        return new Promise((resolve, reject) => {
+            const stmt = db.prepare("INSERT OR REPLACE INTO holiday_cache_status (country, year, last_updated) VALUES (?, ?, CURRENT_TIMESTAMP)");
+            stmt.run(country, year, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+            stmt.finalize();
+        });
+    },
+    
+    // 获取用户设置
+    getUserSetting: (key) => {
+        return new Promise((resolve, reject) => {
+            db.get("SELECT setting_value FROM user_settings WHERE setting_key = ?", [key], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row ? row.setting_value : null);
+                }
+            });
+        });
+    },
+    
+    // 保存用户设置
+    saveUserSetting: (key, value) => {
+        return new Promise((resolve, reject) => {
+            const stmt = db.prepare("INSERT OR REPLACE INTO user_settings (setting_key, setting_value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)");
+            stmt.run(key, value, function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+            stmt.finalize();
+        });
     }
 };
 
@@ -353,11 +474,110 @@ function loadCustomEmojis() {
 // 初始化数据
 let events = {};
 
+// Holiday API 相关函数
+async function fetchHolidaysFromAPI(country, year, forceRefresh = false) {
+    try {
+        const cacheKey = `${country}_${year}`;
+        
+        // 检查是否需要强制刷新
+        if (!forceRefresh) {
+            // 检查内存缓存
+            if (holidayCache[cacheKey]) {
+                return holidayCache[cacheKey];
+            }
+            
+            // 检查数据库缓存是否需要更新
+            const needsUpdate = await dbOperations.needsHolidayUpdate(country, year);
+            if (!needsUpdate) {
+                const cachedHolidays = await dbOperations.getHolidays(country, year);
+                if (cachedHolidays.length > 0) {
+                    holidayCache[cacheKey] = cachedHolidays;
+                    console.log(`📋 使用缓存的节假日数据 (${country} ${year}): ${cachedHolidays.length} 个`);
+                    return cachedHolidays;
+                }
+            }
+        }
+        
+        console.log(`🔄 正在获取节假日数据 (${country} ${year})...`);
+        
+        // 使用免费的 date.nager.at API（无需API key）
+        let holidays = [];
+        try {
+            const response = await axios.get(`${BACKUP_HOLIDAY_API_BASE_URL}/PublicHolidays/${year}/${country}`, {
+                timeout: 10000
+            });
+            
+            if (response.data && Array.isArray(response.data)) {
+                holidays = response.data.map(holiday => ({
+                    country: country,
+                    year: year,
+                    date: holiday.date,
+                    name: holiday.name || holiday.localName,
+                    public: true
+                }));
+            }
+        } catch (apiError) {
+            console.warn(`⚠️ 主API调用失败，尝试备用方案: ${apiError.message}`);
+            
+            // 如果API调用失败，返回数据库中的旧数据
+            const cachedHolidays = await dbOperations.getHolidays(country, year);
+            if (cachedHolidays.length > 0) {
+                holidayCache[cacheKey] = cachedHolidays;
+                console.log(`📋 使用数据库缓存的节假日数据 (${country} ${year}): ${cachedHolidays.length} 个`);
+                return cachedHolidays;
+            }
+            
+            // 如果没有缓存数据，返回空数组
+            console.warn(`❌ 无法获取节假日数据 (${country} ${year})`);
+            return [];
+        }
+        
+        if (holidays.length > 0) {
+            // 保存到数据库
+            await dbOperations.saveHolidays(holidays);
+            
+            // 更新缓存状态
+            await dbOperations.updateHolidayCacheStatus(country, year);
+            
+            // 更新内存缓存
+            holidayCache[cacheKey] = holidays;
+            
+            console.log(`✅ 获取并缓存节假日数据 (${country} ${year}): ${holidays.length} 个`);
+        } else {
+            console.log(`ℹ️ 未找到节假日数据 (${country} ${year})`);
+        }
+        
+        return holidays;
+    } catch (error) {
+        console.error(`❌ 获取节假日数据失败 (${country} ${year}):`, error.message);
+        
+        // 尝试返回数据库中的缓存数据
+        try {
+            const cachedHolidays = await dbOperations.getHolidays(country, year);
+            if (cachedHolidays.length > 0) {
+                holidayCache[cacheKey] = cachedHolidays;
+                console.log(`📋 使用数据库缓存数据作为降级方案 (${country} ${year}): ${cachedHolidays.length} 个`);
+                return cachedHolidays;
+            }
+        } catch (dbError) {
+            console.error(`❌ 数据库查询也失败:`, dbError.message);
+        }
+        
+        return [];
+    }
+}
+
 // 启动时迁移数据并加载
 (async () => {
     await migrateFromJSON();
     events = await dbOperations.getAllEvents();
     userCustomEmojis = await dbOperations.getCustomEmojis();
+    
+    // 预加载当前年份的节假日数据
+    const currentYear = new Date().getFullYear();
+    const defaultCountry = await dbOperations.getUserSetting('country') || 'US';
+    await fetchHolidaysFromAPI(defaultCountry, currentYear);
+    
     console.log('📊 数据库初始化完成');
 })();
 
@@ -403,6 +623,35 @@ const builtInEmojis = {
 
 // 用户自定义表情存储
 let userCustomEmojis = {};
+
+// Holiday API 配置 - 使用免费的 calendarific API
+const HOLIDAY_API_KEY = 'YOUR_CALENDARIFIC_API_KEY'; // 需要注册获取免费API key
+const HOLIDAY_API_BASE_URL = 'https://calendarific.com/api/v2';
+
+// 备用方案：使用免费的 date.nager.at API（无需API key）
+const BACKUP_HOLIDAY_API_BASE_URL = 'https://date.nager.at/api/v3';
+
+// 支持的国家列表
+const supportedCountries = {
+  'US': { name: 'United States', language: 'en', flag: '🇺🇸' },
+  'CN': { name: 'China', language: 'zh', flag: '🇨🇳' },
+  'JP': { name: 'Japan', language: 'ja', flag: '🇯🇵' },
+  'KR': { name: 'South Korea', language: 'ko', flag: '🇰🇷' },
+  'GB': { name: 'United Kingdom', language: 'en', flag: '🇬🇧' },
+  'FR': { name: 'France', language: 'fr', flag: '🇫🇷' },
+  'DE': { name: 'Germany', language: 'de', flag: '🇩🇪' },
+  'IT': { name: 'Italy', language: 'it', flag: '🇮🇹' },
+  'ES': { name: 'Spain', language: 'es', flag: '🇪🇸' },
+  'CA': { name: 'Canada', language: 'en', flag: '🇨🇦' },
+  'AU': { name: 'Australia', language: 'en', flag: '🇦🇺' },
+  'IN': { name: 'India', language: 'en', flag: '🇮🇳' },
+  'BR': { name: 'Brazil', language: 'pt', flag: '🇧🇷' },
+  'MX': { name: 'Mexico', language: 'es', flag: '🇲🇽' },
+  'RU': { name: 'Russia', language: 'ru', flag: '🇷🇺' }
+};
+
+// 节假日缓存
+let holidayCache = {};
 
 // 多巴胺色彩配置
 const dopamineColors = {
@@ -462,6 +711,13 @@ app.get('/', async (req, res) => {
     // 从数据库获取最新事件数据
     const currentEvents = await dbOperations.getAllEvents();
     
+    // 获取用户设置
+    const userCountry = await dbOperations.getUserSetting('country') || 'US';
+    const userLanguage = await dbOperations.getUserSetting('language') || 'en';
+    
+    // 获取节假日数据
+    const holidays = await fetchHolidaysFromAPI(userCountry, year);
+    
     res.render('index', {
           year,
           month,
@@ -471,10 +727,14 @@ app.get('/', async (req, res) => {
           events: currentEvents,
           eventCategories,
           getDateColor,
-          isWorkday
+          isWorkday,
+          holidays,
+          userCountry,
+          userLanguage,
+          supportedCountries
       });
   } catch (error) {
-    console.error('获取事件数据失败:', error);
+    console.error('获取数据失败:', error);
     res.render('index', {
           year,
           month,
@@ -484,7 +744,11 @@ app.get('/', async (req, res) => {
           events: {},
           eventCategories,
           getDateColor,
-          isWorkday
+          isWorkday,
+          holidays: [],
+          userCountry: 'US',
+          userLanguage: 'en',
+          supportedCountries
       });
   }
 });
@@ -692,6 +956,77 @@ app.post('/backup', (req, res) => {
     });
   } else {
     res.status(500).json({ success: false, error: '备份失败' });
+  }
+});
+
+// 获取支持的国家列表
+app.get('/countries', (req, res) => {
+  res.json(supportedCountries);
+});
+
+// 获取节假日数据
+app.get('/holidays/:country/:year', async (req, res) => {
+  const { country, year } = req.params;
+  const forceRefresh = req.query.refresh === 'true';
+  
+  try {
+    const holidays = await fetchHolidaysFromAPI(country, parseInt(year), forceRefresh);
+    res.json(holidays);
+  } catch (error) {
+    console.error('获取节假日失败:', error);
+    res.status(500).json({ error: '获取节假日失败' });
+  }
+});
+
+// 手动刷新节假日数据
+app.post('/holidays/refresh', async (req, res) => {
+  const { country, year } = req.body;
+  
+  try {
+    const holidays = await fetchHolidaysFromAPI(country, year, true);
+    res.json({ 
+      success: true, 
+      count: holidays.length,
+      message: `成功刷新 ${country} ${year} 年节假日数据`
+    });
+  } catch (error) {
+    console.error('刷新节假日失败:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '刷新节假日失败' 
+    });
+  }
+});
+
+// 更新用户设置
+app.post('/settings', async (req, res) => {
+  const { country, language } = req.body;
+  
+  try {
+    if (country) {
+      await dbOperations.saveUserSetting('country', country);
+    }
+    if (language) {
+      await dbOperations.saveUserSetting('language', language);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('保存设置失败:', error);
+    res.status(500).json({ success: false, error: '保存设置失败' });
+  }
+});
+
+// 获取用户设置
+app.get('/settings', async (req, res) => {
+  try {
+    const country = await dbOperations.getUserSetting('country') || 'US';
+    const language = await dbOperations.getUserSetting('language') || 'en';
+    
+    res.json({ country, language });
+  } catch (error) {
+    console.error('获取设置失败:', error);
+    res.status(500).json({ error: '获取设置失败' });
   }
 });
 

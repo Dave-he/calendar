@@ -199,7 +199,7 @@
             <span class="close" onclick="closeEmojiPicker()">&times;</span>
             <h3>选择表情</h3>
             <div class="emoji-picker-tabs">
-                <butn class="picker-tab-btn active" onclick="switchPickerTab('built-in')">内置</button>
+                <button class="picker-tab-btn active" onclick="switchPickerTab('built-in')">内置</button>
                 <button class="picker-tab-btn" onclick="switchPickerTab('custom')">自定义</button>
             </div>
             <div id="emojiPickerContent" class="emoji-picker-content"></div>
@@ -220,6 +220,13 @@
         </div>
     </div>
 
+    <script>
+        // 将服务器数据传递给客户端
+        window.supportedCountries =  JSON.stringify(supportedCountries);
+        window.holidays = JSON.stringify(holidays);
+        window.userCountry = '<%= userCountry %>';
+        window.userLanguage = '<%= userLanguage %>';
+    </script>
     <script src="/js/script.js"></script>
 </body>
 </html>
