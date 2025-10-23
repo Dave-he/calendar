@@ -216,16 +216,34 @@ document.addEventListener('DOMContentLoaded', async function() {
     const modal = document.getElementById('eventModal');
     const closeBtn = document.querySelector('.close');
     
-    closeBtn.onclick = function() {
-        modal.style.display = 'none';
+    if (closeBtn) {
+        closeBtn.onclick = closeEventModal;
     }
     
+    // 点击模态框外部关闭
     window.onclick = function(event) {
         if (event.target === modal) {
-            modal.style.display = 'none';
+            closeEventModal();
+        }
+        
+        // 处理设置模态框
+        const settingsModal = document.getElementById('settingsModal');
+        if (event.target === settingsModal) {
+            closeSettingsModal();
         }
     }
+    
+    // 创建设置按钮
+    createSettingsButton();
 });
+
+// 关闭事件模态框
+function closeEventModal() {
+    const modal = document.getElementById('eventModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
 
 // 初始化触摸手势
 function initTouchGestures() {
