@@ -1,0 +1,52 @@
+<div class="month-calendar">
+    <div class="weekdays">
+        <div>周日</div>
+        <div>周一</div>
+        <div>周二</div>
+        <div>周三</div>
+        <div>周四</div>
+        <div>周五</div>
+        <div>周六</div>
+    </div>
+    <div class="days">
+        <%
+            const firstDay = moment(`${year}-${month.toString().padStart(2, '0')}-01`);
+            const startOfWeek = firstDay.clone().startOf('week');
+            const endOfMonth = firstDay.clone().endOf('month');
+            const endOfWeek = endOfMonth.clone().endOf('week');
+            
+            for (let day = startOfWeek.clone(); day.isSameOrBefore(endOfWeek); day.add(1, 'day')) {
+                const isCurrentMonth = day.month() + 1 === month;
+                const isToday = day.format('YYYY-MM-DD') === today;
+                const dateKey = day.format('YYYY-MM-DD');
+                const dayEvents = events[dateKey] || [];
+                const eventCount = dayEvents.length;
+        %>
+            <div class="day <%= isCurrentMonth ? 'current-month' : 'other-month' %> <%= isToday ? 'today' : '' %>"
+                 data-bg-color="<%= isCurrentMonth ? getDateColor(day.toDate()) : '#f5f5f5' %>"
+                 onclick="openEventModal('<%= dateKey %>')">
+                <div class="day-header">
+                    <span class="day-number"><%= day.date() %></span>
+                    <% if (isCurrentMonth && isWorkday(day.toDate())) { %>
+                        <span class="avatar work">💪</span>
+                    <% } else if (isCurrentMonth && !isWorkday(day.toDate())) { %>
+                        <span class="avatar rest">😎</span>
+                    <% } %>
+                </div>
+                <% if (eventCount > 0) { %>
+                    <div class="event-preview">
+                        <% dayEvents.slice(0, 2).forEach(event => { %>
+                            <div class="event-item" style="border-left: 3px solid <%= eventCategories[event.category]?.color || '#ccc' %>">
+                                <span class="event-category-icon"><%= eventCategories[event.category]?.icon || '📝' %></span>
+                                <%= event.text.length > 12 ? event.text.substring(0, 12) + '...' : event.text %>
+                            </div>
+                        <% }); %>
+                        <% if (eventCount > 2) { %>
+                            <div class="more-events">+<%= eventCount - 2 %> 更多</div>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+        <% } %>
+    </div>
+</div>

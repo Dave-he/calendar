@@ -1,0 +1,69 @@
+<%
+    const currentDay = moment();
+    const dateKey = currentDay.format('YYYY-MM-DD');
+    const dayEvents = events[dateKey] || [];
+    const isWorkday = currentDay.day() >= 1 && currentDay.day() <= 5;
+%>
+
+<div class="day-view">
+    <div class="day-header-large" data-bg-color="<%= getDateColor(currentDay.toDate()) %>">
+        <div class="day-info">
+            <h2><%= currentDay.format('YYYY年MM月DD日') %></h2>
+            <p><%= currentDay.format('dddd') %></p>
+            <% if (isWorkday) { %>
+                <div class="avatar-large work">💪 奋斗日</div>
+            <% } else { %>
+                <div class="avatar-large rest">😎 休息日</div>
+            <% } %>
+        </div>
+    </div>
+    
+    <div class="day-content">
+        <div class="add-event-section">
+            <h3>📝 记录今天</h3>
+            <div class="event-form-inline">
+                <div class="day-category-selector">
+                    <select id="dayEventCategory">
+                        <option value="work">💼 工作</option>
+                        <option value="life">🏠 生活</option>
+                        <option value="study">📚 学习</option>
+                        <option value="entertainment">🎮 娱乐</option>
+                        <option value="health">💪 健康</option>
+                        <option value="social">👥 社交</option>
+                        <option value="travel">✈️ 旅行</option>
+                        <option value="other" selected>📝 其他</option>
+                    </select>
+                </div>
+                <textarea id="dayEventText" placeholder="今天发生了什么美好的事情？"></textarea>
+                <button onclick="addDayEvent()">添加</button>
+            </div>
+        </div>
+        
+        <div class="events-section">
+            <h3>📋 今日事件 (<%= dayEvents.length %>)</h3>
+            <div id="dayEventList">
+                <% if (dayEvents.length === 0) { %>
+                    <div class="no-events">
+                        <p>今天还没有记录任何事件</p>
+                        <p>开始记录你的美好时光吧！ ✨</p>
+                    </div>
+                <% } else { %>
+                    <% dayEvents.forEach((event, index) => { %>
+                        <div class="event-card" data-border-color="<%= eventCategories[event.category]?.color || '#ccc' %>">
+                            <div class="event-content">
+                                <div class="event-category">
+                                    <span class="category-icon"><%= eventCategories[event.category]?.icon || '📝' %></span>
+                                    <span class="category-name"><%= eventCategories[event.category]?.name || '其他' %></span>
+                                </div>
+                                <p><%= event.text %></p>
+                            </div>
+                            <button class="delete-btn" onclick="deleteEvent('<%= dateKey %>', '<%= event.id %>')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    <% }); %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

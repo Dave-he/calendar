@@ -1,0 +1,25 @@
+{
+  "name": "dopamine-calendar",
+  "version": "1.0.0",
+  "description": "A colorful web calendar application with dopamine colors",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "start:3001": "PORT=3001 node server.js",
+    "start:8080": "PORT=8080 node server.js",
+    "start:custom": "echo 'Usage: PORT=YOUR_PORT npm run start:custom' && node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ejs": "^3.1.9",
+    "body-parser": "^1.20.2",
+    "moment": "^2.29.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["calendar", "nodejs", "web", "dopamine", "colorful"],
+  "author": "heyongxian",
+  "license": "MIT"
+}

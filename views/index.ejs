@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多巴胺日历</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🌈 多巴胺日历 🌈</h1>
+            <div class="controls">
+                <div class="view-controls">
+                    <button class="btn <%= view === 'year' ? 'active' : '' %>" onclick="changeView('year')">年视图</button>
+                    <button class="btn <%= view === 'month' ? 'active' : '' %>" onclick="changeView('month')">月视图</button>
+                    <button class="btn <%= view === 'day' ? 'active' : '' %>" onclick="changeView('day')">日视图</button>
+                </div>
+                <div class="navigation">
+                    <button class="btn" onclick="navigate(-1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="current-date">
+                        <% if (view === 'year') { %>
+                            <%= year %>年
+                        <% } else if (view === 'month') { %>
+                            <%= year %>年 <%= month %>月
+                        <% } else { %>
+                            <%= moment().format('YYYY年MM月DD日') %>
+                        <% } %>
+                    </span>
+                    <button class="btn" onclick="navigate(1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="quick-actions">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="🔍 搜索事件..." onkeyup="handleSearch(event)">
+                        <button class="btn search-btn" onclick="performSearch()">搜索</button>
+                    </div>
+                    <button class="btn today-btn" onclick="goToToday()">今天</button>
+                    <input type="date" id="dateJump" onchange="jumpToDate(this.value)">
+                    <div class="category-filter">
+                        <select id="categoryFilter" onchange="filterByCategory(this.value)">
+                            <option value="">所有分类</option>
+                            <option value="work">💼 工作</option>
+                            <option value="life">🏠 生活</option>
+                            <option value="study">📚 学习</option>
+                            <option value="entertainment">🎮 娱乐</option>
+                            <option value="health">💪 健康</option>
+                            <option value="social">👥 社交</option>
+                            <option value="travel">✈️ 旅行</option>
+                            <option value="other">📝 其他</option>
+                        </select>
+                    </div>
+                    <div class="data-actions">
+                        <button class="btn" onclick="exportData()">📤 导出</button>
+                        <button class="btn" onclick="showImportModal()">📥 导入</button>
+                        <button class="btn" onclick="createBackup()">💾 备份</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="calendar-container">
+            <% if (view === 'year') { %>
+                <%- include('partials/year-view') %>
+            <% } else if (view === 'month') { %>
+                <%- include('partials/month-view') %>
+            <% } else { %>
+                <%- include('partials/day-view') %>
+            <% } %>
+        </main>
+    </div>
+
+    <!-- 事件模态框 -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>📅 <span id="modalDate"></span></h2>
+            <div class="event-form">
+                <div class="category-selector">
+                    <label for="eventCategory">选择分类：</label>
+                    <select id="eventCategory">
+                        <option value="work">💼 工作</option>
+                        <option value="life">🏠 生活</option>
+                        <option value="study">📚 学习</option>
+                        <option value="entertainment">🎮 娱乐</option>
+                        <option value="health">💪 健康</option>
+                        <option value="social">👥 社交</option>
+                        <option value="travel">✈️ 旅行</option>
+                        <option value="other" selected>📝 其他</option>
+                    </select>
+                </div>
+                <textarea id="eventText" placeholder="记录今天的美好时光..."></textarea>
+                <button onclick="addEvent()">添加事件</button>
+            </div>
+            <div id="eventList"></div>
+        </div>
+    </div>
+
+    <!-- 搜索结果模态框 -->
+    <div id="searchModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSearchModal()">&times;</span>
+            <h2>🔍 搜索结果</h2>
+            <div id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- 导入数据模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeImportModal()">&times;</span>
+            <h2>📥 导入数据</h2>
+            <div class="import-form">
+                <div class="import-options">
+                    <label>
+                        <input type="radio" name="importMode" value="replace" checked>
+                        替换现有数据
+                    </label>
+                    <label>
+                        <input type="radio" name="importMode" value="merge">
+                        合并到现有数据
+                    </label>
+                </div>
+                <div class="file-input-area">
+                    <input type="file" id="importFile" accept=".json" onchange="handleFileSelect(event)">
+                    <div class="file-drop-area" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)">
+                        <p>拖拽JSON文件到这里，或点击选择文件</p>
+                    </div>
+                </div>
+                <button onclick="importData()" disabled id="importBtn">导入数据</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>
