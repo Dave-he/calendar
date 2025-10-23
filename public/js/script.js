@@ -231,6 +231,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (event.target === settingsModal) {
             closeSettingsModal();
         }
+        
+        // 处理日期表情模态框
+        const dateEmojiModal = document.getElementById('dateEmojiModal');
+        if (event.target === dateEmojiModal) {
+            closeDateEmojiModal();
+        }
     }
     
     // 创建设置按钮
