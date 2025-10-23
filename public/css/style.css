@@ -102,42 +102,48 @@ body {
 /* 年视图样式 */
 .year-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 15px;
+    padding: 10px;
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 
 .month-mini {
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 15px;
-    padding: 15px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    min-width: 220px;
 }
 
 .month-mini h3 {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     color: #333;
+    font-size: 1em;
 }
 
 .mini-calendar .weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-    margin-bottom: 5px;
+    gap: 1px;
+    margin-bottom: 4px;
 }
 
 .mini-calendar .weekdays div {
     text-align: center;
     font-weight: bold;
-    padding: 5px;
-    font-size: 0.8em;
+    padding: 3px;
+    font-size: 0.7em;
     color: #666;
 }
 
 .mini-calendar .days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
+    gap: 1px;
 }
 
 .mini-day {
@@ -146,16 +152,104 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     position: relative;
-    font-size: 0.8em;
+    font-size: 0.7em;
+    min-height: 20px;
+    max-height: 28px;
 }
 
 .mini-day:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
     z-index: 10;
+    background: #f0f4ff;
+}
+
+/* 响应式年视图 */
+@media (max-width: 1200px) {
+    .year-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        padding: 8px;
+    }
+    
+    .month-mini {
+        padding: 10px;
+        min-width: 180px;
+    }
+    
+    .mini-day {
+        font-size: 0.65em;
+        min-height: 18px;
+        max-height: 24px;
+    }
+}
+
+@media (maxdth: 900px) {
+    .year-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        padding: 6px;
+    }
+    
+    .month-mini {
+        padding: 8px;
+        min-width: 150px;
+    }
+    
+    .month-mini h3 {
+        font-size: 0.9em;
+        margin-bottom: 6px;
+    }
+    
+    .mini-calendar .weekdays div {
+        font-size: 0.6em;
+        padding: 2px;
+    }
+    
+    .mini-day {
+        font-size: 0.6em;
+        min-height: 16px;
+        max-height: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    .year-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 4px;
+    }
+    
+    .month-mini {
+        min-width: auto;
+        padding: 6px;
+    }
+    
+    .mini-day {
+        font-size: 0.55em;
+        min-height: 14px;
+        max-height: 18px;
+    }
+}
+
+@media (max-width: 400px) {
+    .year-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+    
+    .month-mini {
+        padding: 8px;
+    }
+    
+    .mini-day {
+        font-size: 0.6em;
+        min-height: 16px;
+        max-height: 20px;
+    }
 }
 
 /* 月视图样式 */
@@ -182,40 +276,139 @@ body {
 }
 
 .day {
-    min-height: 120px;
-    border-radius: 15px;
+    min-height: 100px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    padding: 10px;
+    padding: 8px;
     border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .day:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     border-color: #667eea;
 }
 
 .day.today {
     border: 3px solid #ff6b6b;
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.4);
 }
 
 .day.other-month {
-    opacity: 0.3;
+    opacity: 0.4;
 }
 
 .day-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
 }
 
 .day-number {
     font-weight: bold;
-    font-size: 1.2em;
+    font-size: 1.1em;
+}
+
+/* 响应式月视图优化 */
+@media (max-width: 1200px) {
+    .day {
+        min-height: 90px;
+        padding: 6px;
+    }
+    
+    .day-number {
+        font-size: 1em;
+    }
+    
+    .month-calendar .weekdays div {
+        padding: 12px;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 900px) {
+    .month-calendar .days {
+        gap: 8px;
+    }
+    
+    .day {
+        min-height: 80px;
+        padding: 5px;
+        border-radius: 10px;
+    }
+    
+    .day-number {
+        font-size: 0.95em;
+    }
+    
+    .month-calendar .weekdays {
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .month-calendar .weekdays div {
+        padding: 10px;
+        font-size: 0.85em;
+    }
+}
+
+@media (max-width: 600px) {
+    .month-calendar .days {
+        gap: 6px;
+    }
+    
+    .day {
+        min-height: 70px;
+        padding: 4px;
+        border-radius: 8px;
+    }
+    
+    .day-number {
+        font-size: 0.9em;
+    }
+    
+    .month-calendar .weekdays {
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+    
+    .month-calendar .weekdays div {
+        padding: 8px;
+        font-size: 0.8em;
+    }
+}
+
+@media (max-width: 400px) {
+    .month-calendar .days {
+        gap: 4px;
+    }
+    
+    .day {
+        min-height: 60px;
+        padding: 3px;
+        border-radius: 6px;
+    }
+    
+    .day-number {
+        font-size: 0.85em;
+    }
+    
+    .month-calendar .weekdays {
+        gap: 4px;
+        margin-bottom: 4px;
+    }
+    
+    .month-calendar .weekdays div {
+        padding: 6px;
+        font-size: 0.75em;
+    }
 }
 
 .avatar {
@@ -348,30 +541,32 @@ body {
 }
 
 .event-form-inline button {
-    padding: 15px 25px;
+    padding: 12px 20px;
     background: linear-gradient(45deg, #667eea, #764ba2);
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
     transition: all 0.3s ease;
+    font-size: 14px;
+    white-space: nowrap;
 }
 
 .event-form-inline button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .no-events {
     text-align: center;
-    padding: 40px;
+    padding: 30px;
     color: #666;
 }
 
 .no-events p {
-    margin: 10px 0;
-    font-size: 1.1em;
+    margin: 8px 0;
+    font-size: 1em;
 }
 
 .event-card {
@@ -379,10 +574,61 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     background: linear-gradient(45deg, #ffecd2, #fcb69f);
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    gap: 10px;
+}
+
+/* 响应式日视图事件卡片 */
+@media (max-width: 600px) {
+    .event-form-inline {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .event-form-inline textarea {
+        min-height: 60px;
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    .event-form-inline button {
+        padding: 10px 16px;
+        align-self: stretch;
+    }
+    
+    .no-events {
+        padding: 20px;
+    }
+    
+    .event-card {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+    }
+}
+
+@media (max-width: 400px) {
+    .event-form-inline textarea {
+        min-height: 50px;
+        padding: 8px;
+        font-size: 13px;
+    }
+    
+    .event-form-inline button {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .no-events {
+        padding: 16px;
+    }
+    
+    .event-card {
+        padding: 8px;
+    }
 }
 
 .event-content {
@@ -761,6 +1007,335 @@ body {
 .no-results p {
     margin: 10px 0;
     font-size: 1.1em;
+}
+
+/* 表情相关样式 */
+.emoji-selector, .day-emoji-selector {
+    margin-bottom: 15px;
+}
+
+.emoji-selector label, .day-emoji-selector label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.emoji-picker {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.emoji-picker input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.emoji-picker button, .day-emoji-selector button {
+    padding: 8px 12px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.day-emoji-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.day-emoji-selector input {
+    width: 120px;
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* 表情管理器样式 */
+.emoji-manager {
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.emoji-tabs {
+    display: flex;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    border-bottom-color: #667eea;
+    color: #667eea;
+    font-weight: bold;
+}
+
+.emoji-tab-content {
+    display: none;
+}
+
+.emoji-tab-content.active {
+    display: block;
+}
+
+.emoji-category {
+    margin-bottom: 25px;
+}
+
+.emoji-category h4 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.emoji-item {
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    text-align: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.emoji-item:hover {
+    background: #f0f4ff;
+    transform: scale(1.2);
+}
+
+/* 自定义表情样式 */
+.custom-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.custom-emoji-item {
+    position: relative;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.custom-emoji-item:hover {
+    border-color: #667eea;
+    transform: scale(1.05);
+}
+
+.custom-emoji-item img {
+    width: 100%;
+    height: 60px;
+    object-fit: contain;
+}
+
+.delete-custom-emoji {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: none;
+}
+
+.custom-emoji-item:hover .delete-custom-emoji {
+    display: block;
+}
+
+/* 上传表情样式 */
+.upload-form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.emoji-preview {
+    margin-top: 10px;
+    text-align: center;
+    min-height: 60px;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 表情选择器模态框样式 */
+.emoji-picker-modal {
+    max-width: 600px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.picker-emoji-category {
+    margin-bottom: 20px;
+}
+
+.picker-emoji-category h5 {
+    margin-bottom: 8px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.picker-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(35px, 1fr));
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.picker-emoji-item {
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    text-align: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.picker-emoji-item:hover {
+    background: #f0f4ff;
+    transform: scale(1.1);
+}
+
+/* 日期表情显示样式 */
+.date-emoji-display {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 20px;
+    z-index: 5;
+}
+
+.date-emoji-large {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: linear-gradient(45deg, #ffecd2, #fcb69f);
+    border-radius: 15px;
+}
+
+.emoji-large {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.change-emoji-btn, .add-emoji-btn {
+    padding: 8px 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.no-date-emoji {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+}
+
+.event-emoji, .event-emoji-large {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.event-emoji-large {
+    font-size: 20px;
+}
+
+.event-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.day-actions {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+}
+
+.mini-btn {
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.day:hover .mini-btn {
+    opacity: 1;
+}
+
+.no-custom-emojis {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 40px;
 }
 
 /* 页面切换动画 */

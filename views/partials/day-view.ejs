@@ -34,6 +34,10 @@
                         <option value="other" selected>📝 其他</option>
                     </select>
                 </div>
+                <div class="day-emoji-selector">
+                    <input type="text" id="dayEventEmoji" placeholder="点击选择表情" readonly onclick="showEmojiPicker('dayEventEmoji')">
+                    <button type="button" onclick="clearEmoji('dayEventEmoji')">清除</button>
+                </div>
                 <textarea id="dayEventText" placeholder="今天发生了什么美好的事情？"></textarea>
                 <button onclick="addDayEvent()">添加</button>
             </div>
@@ -48,12 +52,33 @@
                         <p>开始记录你的美好时光吧！ ✨</p>
                     </div>
                 <% } else { %>
-                    <% dayEvents.forEach((event, index) => { %>
+                    <% 
+                        const dateEmoji = dayEvents.find(event => event.type === 'date-emoji');
+                        const regularEvents = dayEvents.filter(event => event.type !== 'date-emoji');
+                    %>
+                    
+                    <% if (dateEmoji) { %>
+                        <div class="date-emoji-large">
+                            <span class="emoji-large"><%= dateEmoji.emoji %></span>
+                            <button class="change-emoji-btn" onclick="setDateEmoji('<%= dateKey %>')">更换表情</button>
+                        </div>
+                    <% } else { %>
+                        <div class="no-date-emoji">
+                            <button class="add-emoji-btn" onclick="setDateEmoji('<%= dateKey %>')">+ 添加日期表情</button>
+                        </div>
+                    <% } %>
+                    
+                    <% regularEvents.forEach((event, index) => { %>
                         <div class="event-card" data-border-color="<%= eventCategories[event.category]?.color || '#ccc' %>">
                             <div class="event-content">
-                                <div class="event-category">
-                                    <span class="category-icon"><%= eventCategories[event.category]?.icon || '📝' %></span>
-                                    <span class="category-name"><%= eventCategories[event.category]?.name || '其他' %></span>
+                                <div class="event-header">
+                                    <% if (event.emoji) { %>
+                                        <span class="event-emoji-large"><%= event.emoji %></span>
+                                    <% } %>
+                                    <div class="event-category">
+                                        <span class="category-icon"><%= eventCategories[event.category]?.icon || '📝' %></span>
+                                        <span class="category-name"><%= eventCategories[event.category]?.name || '其他' %></span>
+                                    </div>
                                 </div>
                                 <p><%= event.text %></p>
                             </div>

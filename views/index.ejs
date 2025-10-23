@@ -55,6 +55,7 @@
                         </select>
                     </div>
                     <div class="data-actions">
+                        <button class="btn" onclick="showEmojiManager()">😊 表情</button>
                         <button class="btn" onclick="exportData()">📤 导出</button>
                         <button class="btn" onclick="showImportModal()">📥 导入</button>
                         <button class="btn" onclick="createBackup()">💾 备份</button>
@@ -92,6 +93,13 @@
                         <option value="travel">✈️ 旅行</option>
                         <option value="other" selected>📝 其他</option>
                     </select>
+                </div>
+                <div class="emoji-selector">
+                    <label for="eventEmoji">选择表情：</label>
+                    <div class="emoji-picker">
+                        <input type="text" id="eventEmoji" placeholder="点击选择表情" readonly onclick="showEmojiPicker('eventEmoji')">
+                        <button type="button" onclick="clearEmoji('eventEmoji')">清除</button>
+                    </div>
                 </div>
                 <textarea id="eventText" placeholder="记录今天的美好时光..."></textarea>
                 <button onclick="addEvent()">添加事件</button>
@@ -132,6 +140,82 @@
                     </div>
                 </div>
                 <button onclick="importData()" disabled id="importBtn">导入数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 表情管理器模态框 -->
+    <div id="emojiManagerModal" class="modal">
+        <div class="modal-content emoji-manager">
+            <span class="close" onclick="closeEmojiManager()">&times;</span>
+            <h2>😊 表情管理器</h2>
+            
+            <div class="emoji-tabs">
+                <button class="tab-btn active" onclick="switchEmojiTab('built-in')">内置表情</button>
+                <button class="tab-btn" onclick="switchEmojiTab('custom')">自定义表情</button>
+                <button class="tab-btn" onclick="switchEmojiTab('upload')">上传表情</button>
+            </div>
+            
+            <div id="builtInEmojis" class="emoji-tab-content active">
+                <div class="emoji-categories"></div>
+            </div>
+            
+            <div id="customEmojis" class="emoji-tab-content">
+                <div class="custom-emoji-list"></div>
+            </div>
+            
+            <div id="uploadEmojis" class="emoji-tab-content">
+                <div class="upload-form">
+                    <h3>上传自定义表情</h3>
+                    <div class="form-group">
+                        <label for="emojiName">表情名称：</label>
+                        <input type="text" id="emojiName" placeholder="给你的表情起个名字">
+                    </div>
+                    <div class="form-group">
+                        <label for="emojiCategory">分类：</label>
+                        <select id="emojiCategory">
+                            <option value="custom">自定义</option>
+                            <option value="mood">心情</option>
+                            <option value="activities">活动</option>
+                            <option value="food">美食</option>
+                            <option value="nature">自然</option>
+                            <option value="animals">动物</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="emojiFile">选择图片：</label>
+                        <input type="file" id="emojiFile" accept="image/*" onchange="previewEmoji(event)">
+                        <div class="emoji-preview" id="emojiPreview"></div>
+                    </div>
+                    <button onclick="uploadCustomEmoji()">上传表情</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 表情选择器模态框 -->
+    <div id="emojiPickerModal" class="modal">
+        <div class="modal-content emoji-picker-modal">
+            <span class="close" onclick="closeEmojiPicker()">&times;</span>
+            <h3>选择表情</h3>
+            <div class="emoji-picker-tabs">
+                <butn class="picker-tab-btn active" onclick="switchPickerTab('built-in')">内置</button>
+                <button class="picker-tab-btn" onclick="switchPickerTab('custom')">自定义</button>
+            </div>
+            <div id="emojiPickerContent" class="emoji-picker-content"></div>
+        </div>
+    </div>
+
+    <!-- 日期表情设置模态框 -->
+    <div id="dateEmojiModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDateEmojiModal()">&times;</span>
+            <h2>🗓️ 设置日期表情</h2>
+            <p>为 <span id="dateEmojiDate"></span> 选择一个表情</p>
+            <div class="date-emoji-picker">
+                <input type="text" id="dateEmojiInput" placeholder="点击选择表情" readonly onclick="showEmojiPicker('dateEmojiInput')">
+                <button onclick="saveDateEmoji()">保存</button>
+                <button onclick="clearDateEmoji()">清除</button>
             </div>
         </div>
     </div>

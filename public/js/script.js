@@ -137,7 +137,12 @@ function applyBackgroundColors() {
     borderElements.forEach(element => {
         const borderColor = element.getAttribute('data-border-color');
         if (borderColor) {
-            element.style.borderLeft = `4px solid ${borderColor}`;
+            // 检查是否是月视图中的事件项
+            if (element.classList.contains('event-item')) {
+                element.style.borderLeft = `3px solid ${borderColor}`;
+            } else {
+                element.style.borderLeft = `4px solid ${borderColor}`;
+            }
         }
     });
 }
@@ -264,8 +269,10 @@ function displayEvents(events) {
 async function addEvent() {
     const eventText = document.getElementById('eventText');
     const eventCategory = document.getElementById('eventCategory');
+    const eventEmoji = document.getElementById('eventEmoji');
     const text = eventText.value.trim();
     const category = eventCategory.value;
+    const emoji = eventEmoji.value;
     
     if (!text) {
         alert('请输入事件内容');
@@ -281,13 +288,15 @@ async function addEvent() {
             body: JSON.stringify({
                 date: selectedDate,
                 text: text,
-                category: category
+                category: category,
+                emoji: emoji
             })
         });
         
         if (response.ok) {
             eventText.value = '';
             eventCategory.value = 'other';
+            eventEmoji.value = '';
             loadEvents(selectedDate);
             showSuccessMessage('事件添加成功！');
             // 刷新页面以更新颜色
@@ -331,8 +340,10 @@ async function deleteEvent(date, eventId) {
 async function addDayEvent() {
     const eventText = document.getElementById('dayEventText');
     const eventCategory = document.getElementById('dayEventCategory');
+    const eventEmoji = document.getElementById('dayEventEmoji');
     const text = eventText.value.trim();
     const category = eventCategory.value;
+    const emoji = eventEmoji.value;
     
     if (!text) {
         alert('请输入事件内容');
@@ -350,13 +361,15 @@ async function addDayEvent() {
             body: JSON.stringify({
                 date: today,
                 text: text,
-                category: category
+                category: category,
+                emoji: emoji
             })
         });
         
         if (response.ok) {
             eventText.value = '';
             eventCategory.value = 'other';
+            eventEmoji.value = '';
             showSuccessMessage('事件添加成功！');
             // 刷新页面
             setTimeout(() => {
@@ -668,6 +681,285 @@ function saveSearchHistory(query) {
 function loadSearchHistory() {
     return JSON.parse(localStorage.getItem('searchHistory') || '[]');
 }
+
+// 表情管理器相关功能
+let currentEmojiInput = null;
+let builtInEmojis = {};
+let customEmojis = {};
+
+// 显示表情管理器
+async function showEmojiManager() {
+    await loadEmojis();
+    document.getElementById('emojiManagerModal').style.display = 'block';
+    renderBuiltInEmojis();
+}
+
+// 关闭表情管理器
+function closeEmojiManager() {
+    document.getElementById('emojiManagerModal').style.display = 'none';
+}
+
+// 切换表情管理器标签
+function switchEmojiTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.emoji-tab-content').forEach(content => content.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(tab === 'built-in' ? 'builtInEmojis' : tab === 'custom' ? 'customEmojis' : 'uploadEmojis').classList.add('active');
+    
+    if (tab === 'built-in') {
+        renderBuiltInEmojis();
+    } else if (tab === 'custom') {
+        renderCustomEmojis();
+    }
+}
+
+// 加载表情数据
+async function loadEmojis() {
+    try {
+        const [builtInResponse, customResponse] = await Promise.all([
+            fetch('/emojis'),
+            fetch('/custom-emojis')
+        ]);
+        
+        builtInEmojis = await builtInResponse.json();
+        customEmojis = await customResponse.json();
+    } catch (error) {
+        console.error('加载表情失败:', error);
+    }
+}
+
+// 渲染内置表情
+function renderBuiltInEmojis() {
+    const container = document.querySelector('#builtInEmojis .emoji-categories');
+    container.innerHTML = '';
+    
+    Object.keys(builtInEmojis).forEach(categoryKey => {
+        const category = builtInEmojis[categoryKey];
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'emoji-category';
+        categoryDiv.innerHTML = `
+            <h4>${category.name}</h4>
+            <div class="emoji-grid">
+                ${category.emojis.map(emoji => `
+                    <span class="emoji-item" onclick="selectEmoji('${emoji}')">${emoji}</span>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(categoryDiv);
+    });
+}
+
+// 渲染自定义表情
+function renderCustomEmojis() {
+    const container = document.querySelector('#customEmojis .custom-emoji-list');
+    container.innerHTML = '';
+    
+    if (Object.keys(customEmojis).length === 0) {
+        container.innerHTML = '<p class="no-custom-emojis">还没有自定义表情，去上传一些吧！</p>';
+        return;
+    }
+    
+    Object.keys(customEmojis).forEach(categoryKey => {
+        const category = customEmojis[categoryKey];
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'custom-emoji-category';
+        categoryDiv.innerHTML = `
+            <h4>${category.name}</h4>
+            <div class="custom-emoji-grid">
+                ${category.emojis.map(emoji => `
+                    <div class="custom-emoji-item" onclick="selectEmoji('${emoji.imageData}')">
+                        <img src="${emoji.imageData}" alt="${emoji.name}" title="${emoji.name}">
+                        <button class="delete-custom-emoji" onclick="deleteCustomEmoji('${categoryKey}', '${emoji.id}')">&times;</button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(categoryDiv);
+    });
+}
+
+// 选择表情
+function selectEmoji(emoji) {
+    if (currentEmojiInput) {
+        document.getElementById(currentEmojiInput).value = emoji;
+        closeEmojiPicker();
+    }
+}
+
+// 显示表情选择器
+async function showEmojiPicker(inputId) {
+    currentEmojiInput = inputId;
+    await loadEmojis();
+    
+    document.getElementById('emojiPickerModal').style.display = 'block';
+    renderEmojiPicker();
+}
+
+// 关闭表情选择器
+function closeEmojiPicker() {
+    document.getElementById('emojiPickerModal').style.display = 'none';
+    currentEmojiInput = null;
+}
+
+// 渲染表情选择器
+function renderEmojiPicker() {
+    const content = document.getElementById('emojiPickerContent');
+    content.innerHTML = '';
+    
+    // 渲染内置表情
+    Object.keys(builtInEmojis).forEach(categoryKey => {
+        const category = builtInEmojis[categoryKey];
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'picker-emoji-category';
+        categoryDiv.innerHTML = `
+            <h5>${category.name}</h5>
+            <div class="picker-emoji-grid">
+                ${category.emojis.slice(0, 20).map(emoji => `
+                    <span class="picker-emoji-item" onclick="selectEmoji('${emoji}')">${emoji}</span>
+                `).join('')}
+            </div>
+        `;
+        content.appendChild(categoryDiv);
+    });
+}
+
+// 清除表情
+function clearEmoji(inputId) {
+    document.getElementById(inputId).value = '';
+}
+
+// 预览上传的表情
+function previewEmoji(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('emojiPreview');
+            preview.innerHTML = `<img src="${e.target.result}" alt="预览" style="max-width: 50px; max-height: 50px;">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// 上传自定义表情
+async function uploadCustomEmoji() {
+    const name = document.getElementById('emojiName').value.trim();
+    const category = document.getElementById('emojiCategory').value;
+    const file = document.getElementById('emojiFile').files[0];
+    
+    if (!name || !file) {
+        alert('请填写表情名称并选择图片');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const response = await fetch('/upload-emoji', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    category: category,
+                    imageData: e.target.result
+                })
+            });
+            
+            if (response.ok) {
+                showSuccessMessage('表情上传成功！');
+                document.getElementById('emojiName').value = '';
+                document.getElementById('emojiFile').value = '';
+                document.getElementById('emojiPreview').innerHTML = '';
+                await loadEmojis();
+                renderCustomEmojis();
+            } else {
+                alert('上传失败，请重试');
+            }
+        } catch (error) {
+            console.error('上传表情失败:', error);
+            alert('上传失败，请重试');
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// 设置日期表情
+function setDateEmoji(date) {
+    document.getElementById('dateEmojiDate').textContent = date;
+    document.getElementById('dateEmojiModal').style.display = 'block';
+    currentDateForEmoji = date;
+}
+
+// 关闭日期表情模态框
+function closeDateEmojiModal() {
+    document.getElementById('dateEmojiModal').style.display = 'none';
+}
+
+// 保存日期表情
+async function saveDateEmoji() {
+    const emoji = document.getElementById('dateEmojiInput').value;
+    
+    if (!emoji) {
+        alert('请选择一个表情');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/date-emoji', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: currentDateForEmoji,
+                emoji: emoji
+            })
+        });
+        
+        if (response.ok) {
+            showSuccessMessage('日期表情设置成功！');
+            closeDateEmojiModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+    } catch (error) {
+        console.error('设置日期表情失败:', error);
+        alert('设置失败，请重试');
+    }
+}
+
+// 清除日期表情
+async function clearDateEmoji() {
+    try {
+        const response = await fetch('/date-emoji', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: currentDateForEmoji,
+                emoji: ''
+            })
+        });
+        
+        if (response.ok) {
+            showSuccessMessage('日期表情已清除！');
+            closeDateEmojiModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+    } catch (error) {
+        console.error('清除日期表情失败:', error);
+        alert('清除失败，请重试');
+    }
+}
+
+let currentDateForEmoji = null;
 
 // HTML转义
 function escapeHtml(text) {

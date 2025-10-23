@@ -11,15 +11,22 @@
     "start:custom": "echo 'Usage: PORT=YOUR_PORT npm run start:custom' && node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "ejs": "^3.1.9",
     "body-parser": "^1.20.2",
-    "moment": "^2.29.4"
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "moment": "^2.29.4",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["calendar", "nodejs", "web", "dopamine", "colorful"],
+  "keywords": [
+    "calendar",
+    "nodejs",
+    "web",
+    "dopamine",
+    "colorful"
+  ],
   "author": "heyongxian",
   "license": "MIT"
 }

@@ -33,19 +33,38 @@
                         <span class="avatar rest">😎</span>
                     <% } %>
                 </div>
-                <% if (eventCount > 0) { %>
+                <% 
+                    // 获取日期表情
+                    const dateEmoji = dayEvents.find(event => event.type === 'date-emoji');
+                    const regularEvents = dayEvents.filter(event => event.type !== 'date-emoji');
+                %>
+                
+                <% if (dateEmoji) { %>
+                    <div class="date-emoji-display">
+                        <%= dateEmoji.emoji %>
+                    </div>
+                <% } %>
+                
+                <% if (regularEvents.length > 0) { %>
                     <div class="event-preview">
-                        <% dayEvents.slice(0, 2).forEach(event => { %>
-                            <div class="event-item" style="border-left: 3px solid <%= eventCategories[event.category]?.color || '#ccc' %>">
+                        <% regularEvents.slice(0, 2).forEach(event => { %>
+                            <div class="event-item" data-border-color="<%= eventCategories[event.category]?.color || '#ccc' %>">
+                                <% if (event.emoji) { %>
+                                    <span class="event-emoji"><%= event.emoji %></span>
+                                <% } %>
                                 <span class="event-category-icon"><%= eventCategories[event.category]?.icon || '📝' %></span>
-                                <%= event.text.length > 12 ? event.text.substring(0, 12) + '...' : event.text %>
+                                <%= event.text.length > 10 ? event.text.substring(0, 10) + '...' : event.text %>
                             </div>
                         <% }); %>
-                        <% if (eventCount > 2) { %>
-                            <div class="more-events">+<%= eventCount - 2 %> 更多</div>
+                        <% if (regularEvents.length > 2) { %>
+                            <div class="more-events">+<%= regularEvents.length - 2 %> 更多</div>
                         <% } %>
                     </div>
                 <% } %>
+                
+                <div class="day-actions">
+                    <button class="mini-btn" onclick="setDateEmoji('<%= dateKey %>')" title="设置日期表情">😊</button>
+                </div>
             </div>
         <% } %>
     </div>
